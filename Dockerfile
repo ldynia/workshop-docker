@@ -1,4 +1,4 @@
-# 1st Stage - build!
+# 1st stage - Build!
 FROM golang:1.16 AS BUILDER
 
 WORKDIR /go/src/app
@@ -13,25 +13,30 @@ RUN go build -o hello
 CMD ["/go/src/app/hello"]
 
 
-# 2st Stage - run!
-FROM alpine:latest AS RUN
+# # 2st stage - run!
+# FROM alpine:latest AS RUN
 
-WORKDIR /app
+# WORKDIR /app
 
-COPY --from=BUILDER /go/src/app/hello /app/
+# COPY --from=BUILDER /go/src/app/hello /app/
 
-RUN chmod -w /
+# # HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
 
-HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+# # # RUN chmod -w /
 
-USER nobody
+# # # # USER nobody
 
-CMD ["/app/hello"]
+# CMD ["/app/hello"]
 
 
-# 3rd Stage - Image Hardening
-FROM gcr.io/distroless/base-debian10
+# # 3rd stage - fun!
+# FROM gcr.io/distroless/base-debian10
 
-COPY --from=RUN /app/hello /
+# # ARG VERSION=0.5
+# # ENV VERSION=$VERSION
 
-CMD ["/hello"]
+# # LABEL version=$VERSION
+
+# COPY --from=RUN /app/hello /
+
+# CMD ["/hello"]

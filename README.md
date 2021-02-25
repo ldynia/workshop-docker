@@ -1,17 +1,31 @@
-# Hello Docker & Go
+# Docker to Go!
+
+Workshop about Docker best practices demonstrating on go language.
 
 ```bash
-$ docker build -t go:demo .
+$ docker build -t go:demo --build-arg VERSION=v1.1 .
+$ docker image history go:demo
+$ docker image inspect go:demo
+
 $ docker run --rm go:demo
 $ docker run --rm --name go-demo -d go:demo sleep 1d
 $ docker exec go-demo ls -l /app
 $ watch -n1 docker ps
 ```
 
-## Labels
+### Multi-stage build
 
 ```Dockerfile
-LABEL version="1.0.0"
+FROM golang:1.16 AS BUILDER
+```
+
+### Labels
+
+```Dockerfile
+ARG VERSION=v0.5.0
+ENV VERSION=$VERSION
+
+LABEL version=$VERSION
 LABEL developer="ldynia"
 ```
 
@@ -21,21 +35,19 @@ LABEL developer="ldynia"
 HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
 ```
 
-# Security
-
-## Read only file system
+### Read only file system
 
 ```Dockerfile
 RUN chmod -w /
 ```
 
-## Root privilege escalation
+### Root privilege escalation
 
 ```Dockerfile
 USER nobody
 ```
 
-## Distroless
+### Distroless
 
 ```Dockerfile
 FROM gcr.io/distroless/base-debian10
