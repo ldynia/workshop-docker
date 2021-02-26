@@ -26,6 +26,8 @@ CMD ["/go/src/app/hello"]
 
 # # # # USER nobody
 
+# # # # # VOLUME /app/data
+
 # CMD ["/app/hello"]
 
 

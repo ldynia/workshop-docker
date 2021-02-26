@@ -35,6 +35,12 @@ LABEL developer="ldynia"
 HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
 ```
 
+### Volumes
+
+```Dockerfile
+VOLUME /app/data
+```
+
 ### Read only file system
 
 ```Dockerfile
@@ -52,3 +58,5 @@ USER nobody
 ```Dockerfile
 FROM gcr.io/distroless/base-debian10
 ```
+
+[django-distroless](https://github.com/ldynia/django-distroless)
