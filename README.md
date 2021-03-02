@@ -2,6 +2,10 @@
 
 Workshop about [docker](https://www.docker.com/) and [Dockerfile](https://docs.docker.com/engine/reference/builder/), [best practices](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/). I'll use [go](https://golang.org/) language to demonstrate power of docker.
 
+**Requirements**:
+* [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+* [docker](https://docs.docker.com/get-docker/)
+
 # What is docker?
 
 * Container image format that follows [Open Container Initiative](https://opencontainers.org/)
@@ -13,13 +17,15 @@ Workshop about [docker](https://www.docker.com/) and [Dockerfile](https://docs.d
 
 ## **Image vs Container**
 
+**Image = Dockerfile**
 ![Image is a Blueprint](https://i.pinimg.com/originals/61/5c/c8/615cc87b000c725739feb4f79995237f.jpg)
 
+**No Process, No Container!**
 ![Container is a House](https://static.turbosquid.com/Preview/2015/01/02__21_43_11/02.jpg898a8fe6-5250-44f3-bdb4-63ebaf5d0620Original.jpg)
 
 # Why docker ?
 
-![image](https://i1.wp.com/www.docker.com/blog/wp-content/uploads/Blog.-Are-containers-..VM-Image-1-1024x435.png?ssl=1)
+![image](https://i.ytimg.com/vi/TvnZTi_gaNc/maxresdefault.jpg)
 
 ```bash
 $ uname -r
@@ -51,9 +57,9 @@ Namespace Types:
 $ docker run --name c1 --detach --rm alpine sleep 1d
 $ docker run --name c2 --detach --rm alpine sleep 2d
 
-$ ps aux | grep sleep
 $ docker exec c1 ps aux
 $ docker exec c2 ps aux
+$ ps aux | grep sleep
 $ docker stop c2
 
 $ docker run --name c2 --detach --rm --pid container:c1 alpine sleep 2d
@@ -70,7 +76,6 @@ CRT - Container runtime
 $ ps faux
 ```
 
-
 # Docker danger!
 
 ```bash
@@ -83,65 +88,347 @@ $ docker run --name demo --rm --detach --volume ~/top_secret/:/app alpine sleep 
 $ docker exec demo ls -l /app
 $ docker exec demo rm -f /app/file.txt
 $ ls -l ~/top_secret
+
+$ docker exec demo whoami
+$ docker exec demo id
 ```
 
-# Dockerfile - Blueprint
+# Hello Go!
+
+
+## Step 1 - Building hello go app
 
 ```bash
-$ docker build -t go:demo --build-arg VERSION=v1.1 .
-$ docker image history go:demo
-$ docker image inspect go:demo
+$ cd ~
+$ git clone https://github.com/ldynia/workshop-docker.git
+$ cd workshop-docker
+```
 
-$ docker run --rm go:demo
-$ docker run --rm --name go-demo -d go:demo sleep 1d
-$ docker exec go-demo ls -l /app
+`hello.go`
+```go
+package main
+
+import (
+	"fmt"
+	"rsc.io/quote"
+)
+
+func main() {
+	fmt.Println("Hello Go!")
+	fmt.Println(quote.Go())
+}
+```
+
+`Dockerfile` v1
+
+```Dockerfile
+FROM golang:1.16
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+```
+
+```bash
+$ docker build -t go/app .
+$ docker run --name app go/app
+$ docker ps -a
+$ docker image ls | grep go/app
+$ docker rm app
+$ docker run --name app --rm go/app ls -lh /go/src/app
+```
+
+## Step 2 - Multi Stage build
+
+`Dockerfile` v2
+
+```Dockerfile
+# 1st stage - Build!
+FROM golang:1.16 AS BUILDER
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+
+# 2st stage - run!
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=BUILDER /go/src/app/hello /app/
+
+HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+
+CMD ["/app/hello"]
+```
+
+```bash
+$ docker run --name app --rm go/app
+$ docker image ls | head -n 5
+```
+
+## Stage 3 - Health Check
+
+`Dockerfile` v3
+```Dockerfile
+# 1st stage - Build!
+FROM golang:1.16 AS BUILDER
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+
+# 2st stage - run!
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=BUILDER /go/src/app/hello /app/
+
+HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+
+CMD ["/app/hello"]
+```
+
+```bash
+$ docker run --name app --rm go/app
 $ watch -n1 docker ps
 ```
 
-### Multi-stage build
+### Step 4 - Read Only FS & Run as NON Root
 
+`Dockerfile` v4
 ```Dockerfile
+# 1st stage - Build!
 FROM golang:1.16 AS BUILDER
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+
+# 2st stage - run!
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=BUILDER /go/src/app/hello /app/
+
+HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+
+RUN chmod -w /
+
+USER nobody
+
+CMD ["/app/hello"]
 ```
 
-### Labels
+```bash
+$ docker run --name app go/app whoami
+$ docker run --name app go/app id
+```
 
+### Step 5 - Distroless
+
+Example of [distroless django](https://github.com/ldynia/django-distroless) project.
+
+`Dockerfile` v5
 ```Dockerfile
-ARG VERSION=v0.5.0
+# 1st stage - Build!
+FROM golang:1.16 AS BUILDER
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+
+# 2st stage - run!
+FROM alpine:latest AS RUN
+
+WORKDIR /app
+
+COPY --from=BUILDER /go/src/app/hello /app/
+
+HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+
+RUN chmod -w /
+
+USER nobody
+
+CMD ["/app/hello"]
+
+
+# 3rd stage - fun!
+FROM gcr.io/distroless/base-debian10
+
+COPY --from=RUN /app/hello /
+
+CMD ["/hello"]
+```
+
+```bash
+$ docker run --rm --name app go/app whoami
+$ docker run --rm --name app go/app sh
+$ docker run --rm --name app go/app
+```
+
+### Step 6 - Volumes
+
+`Dockerfile` v6
+```Dockerfile
+# 1st stage - Build!
+FROM golang:1.16 AS BUILDER
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+
+# 2st stage - run!
+FROM alpine:latest AS RUN
+
+WORKDIR /app
+
+COPY --from=BUILDER /go/src/app/hello /app/
+
+HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+
+RUN chmod -w /
+
+USER nobody
+
+CMD ["/app/hello"]
+
+
+# 3rd stage - fun!
+FROM gcr.io/distroless/base-debian10
+
+COPY --from=RUN /app/hello /
+
+VOLUME /app/data
+
+CMD ["/hello"]
+```
+
+### Step 7 - Args, Envars & Labels
+
+`Dockerfile` v7
+```Dockerfile
+# 1st stage - Build!
+FROM golang:1.16 AS BUILDER
+
+WORKDIR /go/src/app
+
+COPY . /go/src/app
+
+# Initialize module, install packages and create binary
+RUN go mod init hello
+RUN go mod tidy
+RUN go build -o hello
+
+CMD ["/go/src/app/hello"]
+
+# 2st stage - run!
+FROM alpine:latest AS RUN
+
+WORKDIR /app
+
+COPY --from=BUILDER /go/src/app/hello /app/
+
+HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
+
+RUN chmod -w /
+
+USER nobody
+
+CMD ["/app/hello"]
+
+
+# 3rd stage - fun!
+FROM gcr.io/distroless/base-debian10
+
+ARG VERSION=0.5
 ENV VERSION=$VERSION
 
 LABEL version=$VERSION
-LABEL developer="ldynia"
-```
 
-## Heartbeat
+COPY --from=RUN /app/hello /
 
-```Dockerfile
-HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
-```
-
-### Volumes
-
-```Dockerfile
 VOLUME /app/data
+
+CMD ["/hello"]
 ```
 
-### Read only file system
-
-```Dockerfile
-RUN chmod -w /
+```bash
+$ docker build -t go/app --build-arg VERSION=v1.0 .
+$ docker image history go/app
+$ docker image inspect go/app
+$ watch -n1 docker ps
 ```
 
-### Root privilege escalation
+### Step 8 - .dockerignore
 
-```Dockerfile
-USER nobody
+```bash
+$ docker build -t go/app --build-arg VERSION=v1.0 .
+Sending build context to Docker daemon   68.1kB
 ```
 
-### Distroless
-
-```Dockerfile
-FROM gcr.io/distroless/base-debian10
+`.dockerignore` file
+```
+Dockerfile
+*.md
 ```
 
-[django-distroless](https://github.com/ldynia/django-distroless)
+```bash
+$ docker build -t go/app --build-arg VERSION=v1.0 .
+Sending build context to Docker daemon   59.9kB
+```
+
+## Dockerfile
+
+Read **[Dockerfile best practices](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)** document.
+
+
+# Image Security
+
+* docker bench
+* trivy
