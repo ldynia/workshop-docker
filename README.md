@@ -138,9 +138,9 @@ CMD ["/go/src/app/hello"]
 
 ```bash
 $ docker build -t go/app .
+$ docker image ls | grep go/app
 $ docker run --name app go/app
 $ docker ps -a
-$ docker image ls | grep go/app
 $ docker rm app
 $ docker run --name app --rm go/app ls -lh /go/src/app
 ```
@@ -170,8 +170,6 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=BUILDER /go/src/app/hello /app/
-
-HEALTHCHECK CMD [ "/app/hello", "||", "exit", "1"]
 
 CMD ["/app/hello"]
 ```
@@ -212,7 +210,7 @@ CMD ["/app/hello"]
 ```
 
 ```bash
-$ docker run --name app --rm go/app
+$ docker run --rm --name app go/app
 $ watch -n1 docker ps
 ```
 
@@ -251,8 +249,9 @@ CMD ["/app/hello"]
 ```
 
 ```bash
-$ docker run --name app go/app whoami
-$ docker run --name app go/app id
+$ docker run --rm --name app go/app
+$ docker run --rm --name app go/app whoami
+$ docker run --rm --name app go/app id
 ```
 
 ### Step 5 - Distroless
@@ -402,7 +401,6 @@ CMD ["/hello"]
 $ docker build -t go/app --build-arg VERSION=v1.0 .
 $ docker image history go/app
 $ docker image inspect go/app
-$ watch -n1 docker ps
 ```
 
 ### Step 8 - .dockerignore
@@ -430,5 +428,31 @@ Read **[Dockerfile best practices](https://docs.docker.com/develop/develop-image
 
 # Image Security
 
-* docker bench
-* trivy
+## Docker Bench Security
+
+[docker bench security](https://github.com/docker/docker-bench-security) is security benchmark for best-practices around deploying Docker containers.
+
+```bash
+$ docker run --rm --net host --pid host --userns host --cap-add audit_control \
+    -e DOCKER_CONTENT_TRUST=$DOCKER_CONTENT_TRUST \
+    -v /etc:/etc:ro \
+    -v /lib/systemd/system:/lib/systemd/system:ro \
+    -v /usr/bin/containerd:/usr/bin/containerd:ro \
+    -v /usr/bin/runc:/usr/bin/runc:ro \
+    -v /usr/lib/systemd:/usr/lib/systemd:ro \
+    -v /var/lib:/var/lib:ro \
+    -v /var/run/docker.sock:/var/run/docker.sock:ro \
+    --label docker_bench_security \
+    docker/docker-bench-security
+```
+
+## Trivy
+
+[Trivy](https://github.com/aquasecurity/trivy) is [CVE](https://cve.mitre.org/) scanner by developed by aquasecurity.
+
+```bash
+$ mkdir /tmp/trivy
+$ docker run --rm -v /tmp/trivy:/root/.cache/ aquasec/trivy python:3.4-alpine
+$ docker run --rm -v /tmp/trivy:/root/.cache/ aquasec/trivy continuumio/miniconda3:4.8.2
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/trivy:/root/.cache/ aquasec/trivy django/pipelines
+```
