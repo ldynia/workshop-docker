@@ -448,7 +448,7 @@ $ docker run --rm --net host --pid host --userns host --cap-add audit_control \
 
 ## Trivy
 
-[Trivy](https://github.com/aquasecurity/trivy) is [CVE](https://cve.mitre.org/) scanner by developed by aquasecurity.
+[Trivy](https://github.com/aquasecurity/trivy) is [CVE](https://cve.mitre.org/) scanner developed by aquasecurity.
 
 ```bash
 $ mkdir /tmp/trivy
