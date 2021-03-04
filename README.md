@@ -8,15 +8,14 @@ Workshop about [docker](https://www.docker.com/) and [Dockerfile](https://docs.d
 
 # What is docker?
 
+![docker archtecture](https://user-images.githubusercontent.com/1820831/109960922-a2791300-7ce9-11eb-8999-a6f05cf0eb1a.png)
+
 * Container image format that follows [Open Container Initiative](https://opencontainers.org/)
 * A method for building container **images** `Dockerfile` / `docker build`
 * A method for managing container **images** `docker image ls`, etc..
 * A method for sharing container **images** `docker push/pull`, etc..
 * A method for run container **instances** `docker run`, etc..
 * A method for managing container **instances** `docker container ls`, etc..
-
-![docker archtecture](https://user-images.githubusercontent.com/1820831/109960922-a2791300-7ce9-11eb-8999-a6f05cf0eb1a.png)
-
 
 ## **Image vs Container**
 
@@ -132,16 +131,20 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 ```
 
 ```bash
 $ docker build -t go/app .
-$ docker image ls | grep go/app
+
+$ docker image ls
+$ docker image history go/app
+$ docker image inspect go/app
+
 $ docker run --name app go/app
 $ docker ps -a
 $ docker rm app
@@ -161,9 +164,9 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 
@@ -194,9 +197,9 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 
@@ -213,7 +216,7 @@ CMD ["/app/hello"]
 ```
 
 ```bash
-$ docker run --rm --name app go/app
+$ docker run --detach --rm --name app go/app sleep 1d
 $ watch -n1 docker ps
 ```
 
@@ -229,9 +232,9 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 
@@ -252,9 +255,9 @@ CMD ["/app/hello"]
 ```
 
 ```bash
-$ docker run --rm --name app go/app
-$ docker run --rm --name app go/app whoami
-$ docker run --rm --name app go/app id
+$ docker run --detach --rm --name app go/app sleep 1d
+$ docker exec app whoami
+$ docker exec app id
 ```
 
 ### Step 5 - Distroless
@@ -271,9 +274,9 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 
@@ -319,9 +322,9 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 
@@ -363,9 +366,9 @@ WORKDIR /go/src/app
 COPY . /go/src/app
 
 # Initialize module, install packages and create binary
-RUN go mod init hello
-RUN go mod tidy
-RUN go build -o hello
+RUN go mod init hello && \
+    go mod tidy && \
+    go build -o hello
 
 CMD ["/go/src/app/hello"]
 
