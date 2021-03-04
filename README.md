@@ -15,6 +15,9 @@ Workshop about [docker](https://www.docker.com/) and [Dockerfile](https://docs.d
 * A method for run container **instances** `docker run`, etc..
 * A method for managing container **instances** `docker container ls`, etc..
 
+![docker archtecture](https://user-images.githubusercontent.com/1820831/109960922-a2791300-7ce9-11eb-8999-a6f05cf0eb1a.png)
+
+
 ## **Image vs Container**
 
 **Image = Dockerfile**
